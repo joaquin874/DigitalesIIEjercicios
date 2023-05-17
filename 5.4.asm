@@ -1,0 +1,73 @@
+    LIST	    P=16F887
+    #INCLUDE	    <P16F887.INC>
+    
+    __CONFIG _CONFIG1, _FOSC_INTRC_NOCLKOUT & _WDTE_OFF & _PWRTE_OFF & _MCLRE_ON & _CP_OFF & _CPD_OFF & _BOREN_ON & _IESO_ON & _FCMEN_ON & _LVP_ON
+    
+    __CONFIG _CONFIG2, _BOR4V_BOR40V & _WRT_OFF
+    
+    CONT    EQU	    0x20
+   
+    ORG	    0x00
+    GOTO    MAIN
+    ORG	    0x04
+    GOTO    ISR
+    ORG	    0x05
+    
+MAIN
+    
+    BANKSEL TRISB
+    MOVLW   0xF0	;1111 0000
+    MOVFW   TRISB
+    
+    BANKSEL ANSELH
+    CLRF    ANSELH
+    
+    BANKSEL PORTB
+    CLRF    PORTB
+    MOVLW   0x02
+    MOVWF   CONT
+    
+    BANKSEL WPUB
+    MOVLW   0xF0
+    MOVWF   WPUB
+    
+    BANKSEL OPTION_REG
+    MOVLW   0x87	;1000 0111
+    MOVWF   OPTION_REG
+    
+    ; HABILITO LAS INTERRUPCIONES POR TIMER0 Y PUERTOB
+    MOVLW   0x28	;0010 1000
+    MOVWF   INTCON
+    
+    BANKSEL TMR0
+    MOVLW   .61
+    MOVWF   TMR0
+    
+    BSF	    INTCON,7
+    
+    GOTO    $
+    
+ISR
+    ;SALVA EL CONTEXTO
+    MOVWF   0x21
+    MOVF    STATUS,W
+    MOVWF   0x22
+    
+    ;
+    ;INHABILITO LA INTERRUPCION POR PUERTOB
+    BTFSC   CONT,1
+    BCF	    INTCON,3
+    DECFSZ  CONT
+    BSF	    INTCON,3
+    MOVLW   .61
+    MOVWF   TMR0
+    
+    ;RECUPERO EL CONTEXTO
+    MOVF    0x22,W
+    MOVWF   STATUS
+    MOVF    0x21,W
+    BCF	    INTCON,0
+    BCF	    INTCON,3
+    RETFIE
+    
+    END
